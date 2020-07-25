@@ -197,9 +197,9 @@ class GraphView(urwid.WidgetPlaceholder):
 
         # general urwid items
         self.clock_view = urwid.Text(ZERO_TIME, align="center")
-        self.refresh_rate_ctrl = urwid.Edit((u'Refresh[s]:'),
+        self.refresh_rate_ctrl = urwid.Edit((u'Refresh[s]: '),
                                             self.controller.refresh_rate)
-        self.hline = urwid.AttrWrap(urwid.SolidFill(u' '), 'line')
+        self.hline = urwid.AttrWrap(urwid.SolidFill(u'\u2500'), 'line')
 
         self.mode_buttons = []
 
@@ -380,11 +380,7 @@ class GraphView(urwid.WidgetPlaceholder):
 
         # Update the controller to the state of the checkbox
         self.controller.smooth_graph_mode = state
-        if state:
-            self.hline = urwid.AttrWrap(
-                urwid.SolidFill(u'\N{LOWER ONE QUARTER BLOCK}'), 'line')
-        else:
-            self.hline = urwid.AttrWrap(urwid.SolidFill(u' '), 'line')
+        self.hline = urwid.AttrWrap(urwid.SolidFill(u'\u2500'), 'line')
 
         for graph in self.graphs.values():
             graph.set_smooth_colors(state)
@@ -456,7 +452,7 @@ class GraphView(urwid.WidgetPlaceholder):
                 ]
 
         controls = [urwid.Text(('bold text', u"Modes"), align="center")]
-        controls += self.mode_buttons
+        controls += [urwid.Padding(urwid.Pile(self.mode_buttons), ('fixed right', 1))]
         controls += [install_stress_message]
         controls += clock_widget
         controls += [
@@ -485,21 +481,26 @@ class GraphView(urwid.WidgetPlaceholder):
                            align="center"), cpu_name, urwid.Divider()]
 
     def _generate_summaries(self):
-
         fixed_stats = []
         for summary in self.visible_summaries.values():
             fixed_stats += summary.get_text_item_list()
             fixed_stats += [urwid.Text('')]
 
-        # return fixed_stats pile widget
-        return urwid.Pile(fixed_stats)
+        widget = urwid.Pile(fixed_stats)
+        widget = urwid.Padding(widget, ('fixed right', 1))
+        return widget
 
     def show_graphs(self):
         """Show a pile of the graph selected for dislpay"""
-        elements = itertools.chain.from_iterable(
-            ([graph]
-             for graph in self.visible_graphs.values()))
-        self.graph_place_holder.original_widget = urwid.Pile(elements)
+
+        graphs = self.visible_graphs.values()
+        graphs = [urwid.Padding(graph, ('fixed left', 1)) for graph in graphs]
+        last = len(graphs) - 1
+        widgets = itertools.chain.from_iterable(
+            ([graph, ('fixed', 1, urwid.Padding(self.hline, ('fixed left', 1)))] if index != last else [graph]
+            for index, graph in enumerate(graphs)))
+
+        self.graph_place_holder.original_widget = urwid.Pile(widgets)
 
     def main_window(self):
         # initiating the graphs
@@ -551,13 +552,16 @@ class GraphView(urwid.WidgetPlaceholder):
                                                     graph_controls +
                                                     [summaries]))
 
-        vline = urwid.AttrWrap(urwid.SolidFill(u'|'), 'line')
-        widget = urwid.Columns([('fixed', 20, text_col),
+        vline = urwid.AttrWrap(urwid.SolidFill(u'\u2502'), 'line')
+        widget = urwid.Columns([('fixed', 21, text_col),
                                 ('fixed', 1, vline),
                                 ('weight', 2, self.graph_place_holder)],
                                dividechars=0, focus_column=0)
 
         widget = urwid.Padding(widget, ('fixed left', 1), ('fixed right', 1))
+        widget = urwid.AttrWrap(widget, 'body')
+        widget = urwid.LineBox(widget)
+        widget = urwid.AttrWrap(widget, 'line')
         self.main_window_w = widget
 
         base = self.main_window_w.base_widget[0].body
