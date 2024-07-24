@@ -132,7 +132,7 @@ class LabeledBarGraphVector(urwid.WidgetPlaceholder):
         if visible_graph_list is None:
             visible_graph_list = self.visible_graph_list
 
-        vline = urwid.AttrWrap(urwid.SolidFill("|"), "line")
+        vline = urwid.AttrWrap(urwid.SolidFill("\u2502"), "line")
 
         graph_vector_column_list = []
         for state, graph, sub_title in zip(
